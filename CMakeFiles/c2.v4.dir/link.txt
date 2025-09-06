@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/c2.v4.dir/src/c2_main.cpp.o CMakeFiles/c2.v4.dir/src/c2_server.cpp.o -o c2.v4  /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so 

@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/shell.v4.dir/src/shell_main.cpp.o CMakeFiles/shell.v4.dir/src/shell_server.cpp.o -o shell.v4 

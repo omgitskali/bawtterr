@@ -1,0 +1,15 @@
+/home/brady/mvprat/botnet_v4/CMakeFiles/c2.v4.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/bot.v4.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/shell.v4.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/edit_cache.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/rebuild_cache.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/list_install_components.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/install.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/install/local.dir
+/home/brady/mvprat/botnet_v4/CMakeFiles/install/strip.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/edit_cache.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/rebuild_cache.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/list_install_components.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/install.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/install/local.dir
+/home/brady/mvprat/botnet_v4/modules/CMakeFiles/install/strip.dir

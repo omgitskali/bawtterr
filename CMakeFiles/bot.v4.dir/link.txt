@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/bot.v4.dir/src/bot_main.cpp.o CMakeFiles/bot.v4.dir/src/bot_client.cpp.o -o bot.v4  /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so 
